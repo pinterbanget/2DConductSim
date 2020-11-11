@@ -1,78 +1,77 @@
 #!python3
-import symengine
-import numpy as np
+import symengine, sympy as sym, pandas as pd, seaborn as sns, numpy as np
 from numpy import linalg
-import seaborn as sns
-import sympy as sym
-import pandas as pd
 
+"""The first part of the code will ask the user to input data."""
 while True:
     try:
-        jn = int(input('Masukkan node yang diinginkan (n x n): ')) #jumlah node
-        up = float(input('Masukkan temperatur atas: '))
-        dn = float(input('Masukkan temperatur bawah: '))
-        le = float(input('Masukkan temperatur kiri: '))
-        ri = float(input('Masukkan temperatur kanan: '))
+        node = int(input('Input node: '))
+        upperTemp = float(input('Input upper temperature: '))
+        lowerTemp = float(input('Input lower temperature: '))
+        leftTemp  = float(input('Input left temperature: '))
+        rightTemp = float(input('Input right temperature: '))
         break
     except:
-        print('Mohon masukkan angka yang benar!')
+        print('Please input a number.')
+    
+"""The second part of the code is to initialize a matrix (node+2) x (node+2) sized, filled with zeros."""
+"""The matrix is then filled with user data inputted from the first part."""
+nodeMatrix = np.zeros(shape=(node+2,node+2), dtype=object)
+    
+nodeMatrix[0, 1:node+1] = upperTemp
+nodeMatrix[1:node+1, 0] = leftTemp
+nodeMatrix[node+1,1:node+1] = lowerTemp
+nodeMatrix[1:node+1, node+1] = rightTemp
 
-maps = np.zeros(shape=(jn+2,jn+2), dtype=object) #bikin matrix kosong, size jn+2 x jn+2
-#luaran matrixnya itu buat suhunya.
-
-maps[0, :] = up
-maps[:, 0] = le
-maps[jn+1,:] = dn
-maps[:,jn+1] = ri
-maps[0, 0] = 0
-maps[0,jn+1] = 0
-maps[jn+1,0] = 0
-maps[jn+1,jn+1] = 0
-
-mapSymbols = '' #dipake buat operasi sympy nya nanti
+"""The third part of the code is to fill the remaining zeros with different variables."""
+nodeMatrixSymbols = ''
 
 n = 0
-for i in range(0, jn):
-    for j in range(0, jn):
-        maps[i+1,j+1] = 'x' + str(i+j+n) #penambahan x0 x1 blabla
-        mapSymbols += (maps[i+1,j+1]) + ',' #nambahin x0 blablablanya ke mapSymbols
-    n += (jn-1)
+for i in range(0, node):
+    for j in range(0, node):
+        nodeMatrix[i+1,j+1] = 'x' + str(i+j+n)
+        nodeMatrixSymbols += (nodeMatrix[i+1,j+1]) + ','
+    n += (node-1)
 
-mapSymbolsList = list(mapSymbols.split(',')) #ngejadiin mapSymbols jadi list buat for loop
+"""The fourth part of the code is to calculate the variables."""
+"""This is achieved by first making (node)^2 linear equations, and then converting the equations into two matrices."""
+"""The matrices can then be solved using inverse matrix method. AB = X --> A'X = B"""
+nodeMatrixSymbolsList = list(nodeMatrixSymbols.split(','))
 
-mapSolving = sym.symbols(mapSymbols[:len(mapSymbols)-1]) #ngasi list symbols buat fungsi sym
+nodeMatrixSolving = sym.symbols(nodeMatrixSymbols[:len(nodeMatrixSymbols)-1])
 
 eqList = []
 n = 0
-for i in range(0, jn):
-    for j in range(0, jn):
-        value1 = symengine.sympify(maps[i, j+1])
-        value2 = symengine.sympify(maps[i+1, j])
-        value3 = symengine.sympify(maps[i+2, j+1])
-        value4 = symengine.sympify(maps[i+1, j+2])
-        equation = symengine.Eq(value1 + value2 + value3 + value4 - 4*symengine.sympify(mapSymbolsList[i+j+n]), 0)
+for i in range(0, node):
+    for j in range(0, node):
+        value1 = symengine.sympify(nodeMatrix[i, j+1])
+        value2 = symengine.sympify(nodeMatrix[i+1, j])
+        value3 = symengine.sympify(nodeMatrix[i+2, j+1])
+        value4 = symengine.sympify(nodeMatrix[i+1, j+2])
+        equation = symengine.Eq(value1 + value2 + value3 + value4 - 4*symengine.sympify(nodeMatrixSymbolsList[i+j+n]), 0)
         eqList.append(equation)
-    n += (jn-1)
+    n += (node-1)
 
-#ngejadiin persamaan linearnya ke matrix, trus diconvert jadi array numpy
-symatA, symatB = sym.linear_eq_to_matrix(eqList, mapSolving)
+symatA, symatB = sym.linear_eq_to_matrix(eqList, nodeMatrixSolving)
 matA = np.array(symatA, dtype=float)
 matB = np.array(symatB, dtype=float)
 
-#numpy magic bby
 solution = linalg.solve(matA,matB)
 
-#updating the original array
+"""The fifth part of the code is to replace the variables in the original matrix into the result from the solved equations."""
 n = 0
-for i in range(0, jn):
-    for j in range(0, jn):
-        maps[i+1,j+1] = solution[i+j+n]
-    n += (jn-1)
+for i in range(0, node):
+    for j in range(0, node):
+        nodeMatrix[i+1,j+1] = solution[i+j+n]
+    n += (node-1)
 
-result = np.array(maps, dtype=float)
-sns.heatmap(result[1:jn+1, 1:jn+1])
+"""The sixth part of the code is to plot the original matrix into a heatmap."""
+result = np.array(nodeMatrix, dtype=float)
+sns.heatmap(result[1:node+1, 1:node+1])
 
-resultPd = pd.DataFrame(result)
-filepath = str(input('Masukkan nama file Excel: ')) + '.xlsx'
-
-resultPd.to_excel(filepath, index=False)
+"""The seventh part of the code is to ask the user if they want to export the data to Excel."""
+saveYes = str.lower(input('Save data to Excel? (y/n): '))
+if 'y' in saveYes:
+    resultPd = pd.DataFrame(result)
+    filepath = str(input('Name the Excel file: ')) + '.xlsx'
+    resultPd.to_excel(filepath, index=False)
