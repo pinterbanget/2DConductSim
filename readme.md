@@ -1,2 +1,4 @@
-Aplikasi yang dibuat untuk simulasi steady state conduction 2 dimensi.
-Dibuat oleh Ryanson Jonathan / pinterbanget. Python 3.8.
+Two-dimensional steady state conduction simulation.
+The result is an Excel file and a heatmap.
+
+Created by Ryanson Jonathan / pinterbanget. no copy pls :( well but feel free to do a pull request
